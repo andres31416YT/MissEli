@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Miss Eli - Asistente Pedagógica</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">🌟</span>
+                <h1>Miss Eli</h1>
+            </div>
+            <p class="subtitle">Asistente Pedagógica Inteligente</p>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab active" data-tab="chat">💬 Chat</button>
+            <button class="tab" data-tab="vision">👁 Visión</button>
+            <button class="tab" data-tab="insights">📊 Insights</button>
+        </nav>
+
+        <main class="content">
+            <section id="chat" class="tab-content active">
+                <div class="chat-container">
+                    <div id="chat-messages" class="messages"></div>
+                    <div class="suggestions">
+                        <p>Sugerencias:</p>
+                        <div id="suggestions-list" class="suggestions-list"></div>
+                    </div>
+                    <form id="chat-form" class="chat-form">
+                        <input type="text" id="chat-input" placeholder="Escribe tu consulta..." autocomplete="off">
+                        <button type="submit">Enviar</button>
+                    </form>
+                </div>
+            </section>
+
+            <section id="vision" class="tab-content">
+                <div class="vision-container">
+                    <div class="camera-placeholder">
+                        <div class="camera-icon">📷</div>
+                        <p>Captura del aula</p>
+                        <button id="capture-btn" class="btn-primary">Capturar y Analizar</button>
+                        <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none">
+                    </div>
+                    <div id="vision-result" class="vision-result" style="display:none">
+                        <h3>Análisis de Dispersión</h3>
+                        <div id="vision-metrics"></div>
+                        <div id="vision-audio" class="audio-message"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="insights" class="tab-content">
+                <div class="insights-container">
+                    <div id="insights-loading" class="loading">Cargando estadísticas...</div>
+                    <div id="insights-content" style="display:none">
+                        <div class="stats-grid" id="stats-grid"></div>
+                        <div class="patterns">
+                            <h3>Patrones Detectados</h3>
+                            <ul id="patterns-list"></ul>
+                        </div>
+                        <div class="recommendations">
+                            <h3>Recomendaciones</h3>
+                            <ul id="recommendations-list"></ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>Miss Eli v1.0 - Asistente Pedagógica Inteligente</p>
+        </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
