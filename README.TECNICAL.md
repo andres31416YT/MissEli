@@ -5,12 +5,14 @@
 
 * **Objetivo:** Disminuir el nivel de distracción estudiantil y mitigar el agotamiento emocional del profesorado mediante tecnología proactiva.
 
-## 2. Arquitectura de Despliegue y Conectividad
-El sistema se basa en una arquitectura de contenedores para garantizar portabilidad y seguridad.
+## 2. Arquitectura de Despliegue
+El sistema se despliega en **Render** como un único servicio web que sirve tanto el backend API como el frontend estático.
 
-* **Backend:** Ejecución local en la PC del docente mediante **Docker**.
-* **Frontend:** Servido en un contenedor independiente, publicado mediante un túnel seguro de **Ngrok** (configurado con `authtoken`) para acceso remoto desde dispositivos móviles (tablets/smartphones).
-* **Responsividad:** Interfaz diseñada bajo el enfoque *mobile-first*, asegurando una UX fluida desde cualquier dispositivo dentro del aula.
+* **Backend + Frontend:** Servicio web en Render utilizando Docker
+* **API:** FastAPI sirve endpoints REST bajo `/api/v1/*`
+* **Frontend:** Archivos estáticos servidos por FastAPI en la ruta raíz `/`
+* **Procesamiento de IA:** OpenAI GPT-4o (vía API)
+* **Visión:** Captura de snapshots vía cámara web (procesamiento visual)
 
 ## 3. Módulos Principales de Miss Eli
 
@@ -31,17 +33,41 @@ Panel de control para la mejora continua.
 * **Framework Backend:** **FastAPI** (Rendimiento asíncrono, alta velocidad y validación automática).
 * **Procesamiento de IA:** **OpenAI GPT-4o** (vía API).
 * **Visión:** Captura de *snapshots* vía cámara web (procesamiento visual).
-* **Red:** Túnel seguro vía **Ngrok**.
+* **Frontend:** HTML5, CSS3, JavaScript vanilla (mobile-first).
 * **Contenedores:** **Docker** (Aislamiento de servicios y portabilidad).
+* **Deploy:** **Render** (PaaS para despliegue automático).
 
 ## 5. Diseño y Seguridad
 * **Gestión de Sesiones:** Manejo de sesiones robustas en backend mediante tokens cifrados para proteger la información del aula.
-* **Seguridad en Docker:** Inyección de credenciales (`API_KEYS`, `NGROK_AUTHTOKEN`) mediante variables de entorno protegidas.
-* **Seguridad de Red:** Acceso restringido exclusivamente a través del túnel de Ngrok, permitiendo el cierre inmediato de la sesión al finalizar la jornada.
-* **Privacidad:** Procesamiento local en contenedor y envío de metadatos anonimizados a la nube, evitando el almacenamiento de rostros o datos sensibles.
+* **Seguridad en Render:** Variables de entorno protegidas para `OPENAI_API_KEY`.
+* **Privacidad:** Procesamiento en la nube con metadatos anonimizados, evitando el almacenamiento de rostros o datos sensibles.
+* **CORS:** Configuración de CORS en FastAPI para permitir acceso desde el frontend.
 
 ## 6. Flujo de Comunicación
-1. **Frontend:** El dispositivo del docente envía comandos o imágenes.
-2. **Ngrok:** Túnel seguro que recibe los datos desde la red local/externa.
-3. **Backend (Docker):** FastAPI procesa la lógica, gestiona la sesión y consulta a la API de OpenAI.
-4. **Respuesta:** La IA retorna la acción (texto, metadatos o comando de audio), la cual es ejecutada por el agente.
+1. **Frontend:** El usuario envía comandos o imágenes desde el navegador.
+2. **Backend (Render):** FastAPI procesa la lógica, gestiona la sesión y consulta a la API de OpenAI.
+3. **Respuesta:** La IA retorna la acción (texto, metadatos o comando de audio), la cual es ejecutada por el agente.
+
+## 7. Variables de Entorno
+| Variable | Descripción |
+|----------|-------------|
+| `OPENAI_API_KEY` | Clave de API de OpenAI para GPT-4o |
+
+## 8. Despliegue en Render
+
+### Pasos:
+1. Crear cuenta en [Render](https://render.com)
+2. Crear nuevo **Web Service**
+3. Conectar repositorio de GitHub/GitLab
+4. Configurar:
+   - **Runtime:** Docker
+   - **Dockerfile Path:** `./backend/Dockerfile`
+   - **Plan:** Free (o superior según necesidades)
+5. Agregar variable de entorno `OPENAI_API_KEY`
+6. Deploy automático en cada push a main
+
+### URL de acceso:
+Una vez desplegado, la aplicación estará disponible en:
+```
+https://misseli-backend.onrender.com
+```

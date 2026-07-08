@@ -1,22 +1,80 @@
-### **Nombre del Proyecto: "Miss Eli" (Propuesta)**
+# Miss Eli - Asistente Pedagógica Inteligente
 
-**Resumen Ejecutivo**
-"Miss Eli" es un **asistente pedagógico inteligente en tiempo real** diseñado para potenciar la labor del docente en educación inicial. A través de un sistema de visión artificial integrado en el aula, la plataforma monitorea discretamente el nivel de atención y el estado energético del grupo. Su función no es supervisar para sancionar, sino **actuar como un co-docente de apoyo** que detecta el momento exacto en que la dinámica grupal necesita un ajuste, permitiendo al maestro enfocarse en la enseñanza mientras la IA gestiona el ritmo ambiental.
+**Miss Eli** es un asistente pedagógico inteligente en tiempo real diseñado para potenciar la labor del docente en educación inicial. A través de un sistema de visión artificial, la plataforma monitorea discretamente el nivel de atención y el estado energético del grupo, actuando como un co-docente de apoyo.
 
-**¿Cómo funciona?**
-El sistema opera bajo tres pilares de soporte para el docente:
+## Características
 
-1. **Monitoreo y Alerta Proactiva:** La IA analiza patrones de conducta y niveles de dispersión en el aula. Antes de que el caos estalle, el sistema envía recomendaciones discretas al docente (vía tablet o smartwatch) sugiriendo cambios de actividad o pausas estratégicas.
-2. **Gestión de Ambiente Dinámico:** Basándose en el estado emocional detectado, la IA puede automatizar la ambientación del salón, ajustando la iluminación o reproduciendo música de fondo específica para calmar la energía o estimular la participación.
-3. **Interacción de Refuerzo Positivo:** Cuando el sistema detecta estudiantes que se han desconectado, puede emitir mensajes de voz suaves o señales visuales gamificadas que redirigen la atención de los niños de manera lúdica, actuando como un puente entre el niño y la docente sin que esta deba interrumpir su explicación.
+- **Eli-Chat**: Chat pedagógico en tiempo real con recomendaciones basadas en IA
+- **Eli-Vision**: Análisis de dispersión del aula mediante visión computacional
+- **Eli-Insights**: Panel de estadísticas y patrones conductuales para mejora continua
 
-**El Valor Diferencial**
-A diferencia de los métodos de control tradicionales que generan estrés y fatiga, "Miss Eli" transforma el aula en un **ecosistema sensible**. El docente deja de ser un "bombero" que apaga incendios (caos) para convertirse en un facilitador que guía el aprendizaje, delegando la gestión de las micro-disrupciones a una inteligencia artificial diseñada para mantener la armonía y la fluidez pedagógica.
+## Tecnologías
 
----
+- **Backend**: FastAPI + Python
+- **Frontend**: HTML5 + CSS3 + JavaScript vanilla
+- **IA**: OpenAI GPT-4o
+- **Deploy**: Render
 
-### **¿Por qué esta versión es más fuerte?**
+## Deploy en Render
 
-* **De "Supervisor" a "Co-docente":** Al cambiar la palabra "supervisor" por "asistente pedagógico" o "co-docente", eliminas el miedo a la vigilancia y te enfocas en el **valor de ayuda**.
-* **Enfoque en Proactividad:** Mencionas que actúa *antes* de que ocurra el caos, lo cual resuelve directamente el "Outcome Gap" y la ansiedad que identificamos en tu análisis previo.
-* **Lenguaje pedagógico:** Usar términos como "ecosistema sensible", "flujo pedagógico" y "refuerzo positivo" alinea tu proyecto con las necesidades de un entorno educativo real.
+1. Hacé fork de este repositorio
+2. Creá un nuevo **Web Service** en [Render](https://render.com)
+3. Conectá tu repositorio de GitHub
+4. Configurá las variables de entorno:
+   - `OPENAI_API_KEY`: Tu clave de OpenAI
+5. Render detectará automáticamente el `Dockerfile` y desplegará la aplicación
+
+La aplicación estará disponible en: `https://misseli-backend.onrender.com`
+
+## Desarrollo Local
+
+```bash
+# Clonar el repositorio
+git clone <tu-repo>
+cd MissEli
+
+# Configurar variables de entorno
+cp .env.example .env
+# Editar .env con tu OPENAI_API_KEY
+
+# Levantar servicios
+docker compose up -d
+
+# Acceder a la aplicación
+# Frontend: http://localhost:8080
+# Backend API: http://localhost:8000
+# Documentación API: http://localhost:8000/docs
+```
+
+## Estructura del Proyecto
+
+```
+MissEli/
+├── backend/
+│   ├── app/
+│   │   ├── core/          # Configuración
+│   │   ├── routes/        # Endpoints API
+│   │   ├── schemas/       # Modelos Pydantic
+│   │   └── services/      # Lógica de negocio
+│   ├── Dockerfile
+│   └── requirements.txt
+├── frontend/
+│   ├── static/
+│   │   ├── styles.css
+│   │   └── app.js
+│   ├── index.html
+│   └── Dockerfile
+├── docker-compose.yml
+└── render.yaml
+```
+
+## Módulos Principales
+
+### I. Eli-Chat (Solo Chat)
+Espacio de interacción directa donde la maestra esscribe sus dudas o solicita soporte pedagógico inmediato.
+
+### II. Eli-Vision (Solo Video)
+El sistema captura snapshots del aula para ser procesados por el agente de visión, generando recomendaciones proactivas.
+
+### III. Eli-Insights (Solo Estadísticas)
+Panel de control para la mejora continua con mediciones y generación de recomendaciones basadas en datos históricos.

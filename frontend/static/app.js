@@ -74,8 +74,24 @@ function addMessage(role, text) {
     const container = document.getElementById('chat-messages');
     const div = document.createElement('div');
     div.className = `message ${role}`;
-    div.textContent = text;
+    
+    const avatar = document.createElement('div');
+    avatar.className = 'message-avatar';
+    avatar.textContent = role === 'user' ? '👤' : '🌟';
+    
+    const content = document.createElement('div');
+    content.className = 'message-content';
+    content.innerHTML = `<p>${escapeHtml(text)}</p>`;
+    
+    div.appendChild(avatar);
+    div.appendChild(content);
     container.appendChild(div);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 async function loadSuggestions() {
@@ -89,6 +105,7 @@ async function loadSuggestions() {
             chip.textContent = suggestion;
             chip.addEventListener('click', () => {
                 document.getElementById('chat-input').value = suggestion;
+                document.getElementById('chat-input').focus();
             });
             list.appendChild(chip);
         });
@@ -98,47 +115,65 @@ async function loadSuggestions() {
 }
 
 function setupVision() {
-    const captureBtn = document.getElementById('capture-btn');
+    const captureBtn = document.getElementById('camera-trigger');
     const cameraInput = document.getElementById('camera-input');
 
-    captureBtn.addEventListener('click', () => cameraInput.click());
+    if (captureBtn && cameraInput) {
+        captureBtn.addEventListener('click', () => cameraInput.click());
 
-    cameraInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+        cameraInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-            const base64 = event.target.result.split(',')[1];
-            captureBtn.disabled = true;
-            captureBtn.textContent = 'Analizando...';
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const base64 = event.target.result.split(',')[1];
+                const placeholder = document.querySelector('.camera-placeholder');
+                if (placeholder) placeholder.style.opacity = '0.5';
 
-            try {
-                const data = await api('/vision/analyze', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        session_id: state.sessionId,
-                        image_base64: base64,
-                    }),
-                });
-                showVisionResult(data);
-            } catch (error) {
-                alert(`Error: ${error.message}`);
-            } finally {
-                captureBtn.disabled = false;
-                captureBtn.textContent = 'Capturar y Analizar';
-            }
-        };
-        reader.readAsDataURL(file);
-    });
+                try {
+                    const data = await api('/vision/analyze', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            session_id: state.sessionId,
+                            image_base64: base64,
+                        }),
+                    });
+                    showVisionResult(data);
+                } catch (error) {
+                    alert(`Error: ${error.message}`);
+                } finally {
+                    if (placeholder) placeholder.style.opacity = '1';
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    }
 }
 
 function showVisionResult(data) {
     const result = document.getElementById('vision-result');
     const metrics = document.getElementById('vision-metrics');
     const audio = document.getElementById('vision-audio');
+    const badge = document.getElementById('result-badge');
 
     result.style.display = 'block';
+    
+    const dispersion = data.analysis.dispersion_percentage;
+    let badgeText = 'Atención Alta';
+    let badgeColor = '#10b981';
+    if (dispersion > 40) {
+        badgeText = 'Atención Baja';
+        badgeColor = '#ef4444';
+    } else if (dispersion > 20) {
+        badgeText = 'Atención Media';
+        badgeColor = '#f59e0b';
+    }
+    
+    badge.textContent = badgeText;
+    badge.style.background = badgeColor + '20';
+    badge.style.color = badgeColor;
+    
     metrics.innerHTML = `
         <div class="metric-card">
             <div class="metric-value">${data.analysis.total_count}</div>
@@ -149,11 +184,11 @@ function showVisionResult(data) {
             <div class="metric-label">Distraídos</div>
         </div>
         <div class="metric-card">
-            <div class="metric-value">${data.analysis.dispersion_percentage}%</div>
+            <div class="metric-value">${dispersion}%</div>
             <div class="metric-label">Dispersión</div>
         </div>
         <div class="metric-card">
-            <div class="metric-value">${100 - data.analysis.dispersion_percentage}%</div>
+            <div class="metric-value">${100 - dispersion}%</div>
             <div class="metric-label">Atención</div>
         </div>
     `;
@@ -163,14 +198,14 @@ function showVisionResult(data) {
 async function loadInsights() {
     const loading = document.getElementById('insights-loading');
     const content = document.getElementById('insights-content');
-    loading.style.display = 'block';
+    loading.style.display = 'flex';
     content.style.display = 'none';
 
     try {
         const data = await api(`/insights/summary?session_id=${state.sessionId}`);
         showInsights(data);
     } catch (error) {
-        loading.textContent = `Error: ${error.message}`;
+        loading.innerHTML = `<p style="color: var(--danger)">Error: ${error.message}</p>`;
     }
 }
 
@@ -183,7 +218,9 @@ function showInsights(data) {
         <div class="stat-card">
             <div class="stat-header">
                 <span class="stat-metric">${stat.metric}</span>
-                <span class="stat-trend ${stat.trend}">${stat.trend === 'up' ? '↑' : stat.trend === 'down' ? '↓' : '→'}</span>
+                <span class="stat-trend ${stat.trend}">
+                    ${stat.trend === 'up' ? '↑' : stat.trend === 'down' ? '↓' : '→'}
+                </span>
             </div>
             <div class="stat-value">${stat.value}</div>
             <div class="stat-unit">${stat.unit}</div>
@@ -191,10 +228,10 @@ function showInsights(data) {
     `).join('');
 
     const patternsList = document.getElementById('patterns-list');
-    patternsList.innerHTML = data.patterns.map(p => `<li>• ${p}</li>`).join('');
+    patternsList.innerHTML = data.patterns.map(p => `<li>${p}</li>`).join('');
 
     const recList = document.getElementById('recommendations-list');
-    recList.innerHTML = data.recommendations.map(r => `<li>✓ ${r}</li>`).join('');
+    recList.innerHTML = data.recommendations.map(r => `<li>${r}</li>`).join('');
 }
 
 document.addEventListener('DOMContentLoaded', init);

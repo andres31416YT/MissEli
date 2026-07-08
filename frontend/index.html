@@ -5,66 +5,141 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Miss Eli - Asistente Pedagógica</title>
     <link rel="stylesheet" href="/static/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="app">
         <header class="header">
             <div class="logo">
-                <span class="logo-icon">🌟</span>
-                <h1>Miss Eli</h1>
+                <div class="logo-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 16v-4M12 8h.01"/>
+                    </svg>
+                </div>
+                <div class="logo-text">
+                    <h1>Miss Eli</h1>
+                    <span class="logo-subtitle">Asistente Pedagógica</span>
+                </div>
             </div>
-            <p class="subtitle">Asistente Pedagógica Inteligente</p>
         </header>
 
         <nav class="tabs">
-            <button class="tab active" data-tab="chat">💬 Chat</button>
-            <button class="tab" data-tab="vision">👁 Visión</button>
-            <button class="tab" data-tab="insights">📊 Insights</button>
+            <button class="tab active" data-tab="chat" aria-label="Chat">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span>Chat</span>
+            </button>
+            <button class="tab" data-tab="vision" aria-label="Visión">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <span>Visión</span>
+            </button>
+            <button class="tab" data-tab="insights" aria-label="Insights">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10"/>
+                    <line x1="12" y1="20" x2="12" y2="4"/>
+                    <line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+                <span>Insights</span>
+            </button>
         </nav>
 
         <main class="content">
             <section id="chat" class="tab-content active">
                 <div class="chat-container">
-                    <div id="chat-messages" class="messages"></div>
+                    <div id="chat-messages" class="messages">
+                        <div class="message assistant">
+                            <div class="message-avatar">🌟</div>
+                            <div class="message-content">
+                                <p>¡Hola! Soy Miss Eli, tu asistente pedagógica. ¿En qué puedo ayudarte hoy?</p>
+                            </div>
+                        </div>
+                    </div>
                     <div class="suggestions">
-                        <p>Sugerencias:</p>
+                        <p class="suggestions-title">Sugerencias rápidas</p>
                         <div id="suggestions-list" class="suggestions-list"></div>
                     </div>
                     <form id="chat-form" class="chat-form">
                         <input type="text" id="chat-input" placeholder="Escribe tu consulta..." autocomplete="off">
-                        <button type="submit">Enviar</button>
+                        <button type="submit" aria-label="Enviar">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"/>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                            </svg>
+                        </button>
                     </form>
                 </div>
             </section>
 
             <section id="vision" class="tab-content">
                 <div class="vision-container">
-                    <div class="camera-placeholder">
-                        <div class="camera-icon">📷</div>
-                        <p>Captura del aula</p>
-                        <button id="capture-btn" class="btn-primary">Capturar y Analizar</button>
+                    <div class="vision-header">
+                        <h2>Análisis del Aula</h2>
+                        <p class="vision-description">Captura una foto para analizar el nivel de atención de los estudiantes</p>
+                    </div>
+                    <div class="camera-card">
+                        <div class="camera-placeholder" id="camera-trigger">
+                            <div class="camera-icon">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                    <circle cx="12" cy="13" r="4"/>
+                                </svg>
+                            </div>
+                            <p class="camera-text">Toca para capturar</p>
+                            <p class="camera-hint">o selecciona una imagen</p>
+                        </div>
                         <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none">
                     </div>
                     <div id="vision-result" class="vision-result" style="display:none">
-                        <h3>Análisis de Dispersión</h3>
-                        <div id="vision-metrics"></div>
-                        <div id="vision-audio" class="audio-message"></div>
+                        <div class="result-header">
+                            <h3>Resultado del Análisis</h3>
+                            <span class="result-badge" id="result-badge">En proceso</span>
+                        </div>
+                        <div class="metrics-grid" id="vision-metrics"></div>
+                        <div class="recommendation-card">
+                            <div class="recommendation-icon">💡</div>
+                            <p id="vision-audio" class="recommendation-text"></p>
+                        </div>
                     </div>
                 </div>
             </section>
 
             <section id="insights" class="tab-content">
                 <div class="insights-container">
-                    <div id="insights-loading" class="loading">Cargando estadísticas...</div>
+                    <div class="insights-header">
+                        <h2>Estadísticas</h2>
+                        <p class="insights-subtitle">Panel de control y mejora continua</p>
+                    </div>
+                    <div id="insights-loading" class="loading-state">
+                        <div class="loading-spinner"></div>
+                        <p>Cargando estadísticas...</p>
+                    </div>
                     <div id="insights-content" style="display:none">
                         <div class="stats-grid" id="stats-grid"></div>
-                        <div class="patterns">
-                            <h3>Patrones Detectados</h3>
-                            <ul id="patterns-list"></ul>
+                        <div class="insights-card">
+                            <h3 class="insights-card-title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                </svg>
+                                Patrones Detectados
+                            </h3>
+                            <ul id="patterns-list" class="insights-list"></ul>
                         </div>
-                        <div class="recommendations">
-                            <h3>Recomendaciones</h3>
-                            <ul id="recommendations-list"></ul>
+                        <div class="insights-card">
+                            <h3 class="insights-card-title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                    <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                                Recomendaciones
+                            </h3>
+                            <ul id="recommendations-list" class="insights-list"></ul>
                         </div>
                     </div>
                 </div>

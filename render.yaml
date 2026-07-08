@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: misseli-backend
+    env: docker
+    region: oregon
+    plan: free
+    branch: main
+    dockerfilePath: ./backend/Dockerfile
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+    healthCheckPath: /health
+    autoDeploy: true
