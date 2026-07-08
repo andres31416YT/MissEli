@@ -1,0 +1,14 @@
+.git
+.gitignore
+__pycache__
+*.pyc
+.venv
+node_modules
+.env
+.env.*
+!.env.example
+README.md
+README.TECNICAL.md
+render.yaml
+docker-compose.yml
+ngrok
