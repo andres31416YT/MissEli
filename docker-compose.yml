@@ -24,8 +24,7 @@ services:
     restart: unless-stopped
 
   ngrok:
-    image: ngrok/ngrok:latest
-    command: http frontend:80 --authtoken=${NGROK_AUTHTOKEN}
+    build: ./ngrok
     environment:
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
     ports:
