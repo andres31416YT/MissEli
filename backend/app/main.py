@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from app.core.config import settings
 from app.routes import chat, vision, insights
 import os
@@ -34,8 +34,14 @@ if os.path.exists(frontend_path):
     def serve_frontend():
         return FileResponse(os.path.join(frontend_path, "index.html"))
 
+    @app.get("/index.html")
+    def serve_index():
+        return FileResponse(os.path.join(frontend_path, "index.html"))
+
     @app.get("/{full_path:path}")
     def catch_all(full_path: str):
+        if full_path.startswith("api/") or full_path.startswith("health"):
+            return Response(status_code=404)
         file_path = os.path.join(frontend_path, full_path)
         if full_path and os.path.isfile(file_path):
             return FileResponse(file_path)
