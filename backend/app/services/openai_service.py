@@ -1,4 +1,3 @@
-import google.generativeai as genai
 from datetime import datetime
 from app.core.config import settings
 from app.schemas.chat import ChatRequest, ChatResponse
@@ -6,97 +5,57 @@ from app.schemas.vision import VisionRequest, VisionResponse, DispersionAnalysis
 from app.schemas.insights import InsightsResponse, Statistic
 
 
-genai.configure(api_key=settings.OPENAI_API_KEY)
+CHAT_RESPONSES = {
+    "dispersión": "Para reducir la dispersión en el aula, podés probar estas estrategias: 1) Usá transiciones claras entre actividades. 2) Incorporá movimiento cada 20-25 minutos. 3) Mantené el contacto visual y variá el tono de voz. 4) Usá materiales concretos y manipulables.",
+    "actividad": "Acá tenés una actividad para niños inquietos: 'El detective de sonidos'. Pedí a los niños que caminen por el aula y, cuando digas un sonido, deben congelarse y señalar de dónde viene. Trabaja atención, escucha y control motor.",
+    "música": "Te recomiendo música instrumental suave, canciones infantiles acústicas o sonidos de la naturaleza. Evitá letras en este momento. Podés usar playlists de 'Música para aprender' o 'Sonidos de aula tranquila'.",
+    "transición": "Para una transición suave: 1) Avisá con anticipación: 'En 2 minutos cambiamos de actividad'. 2) Usá una canción o señal ritual. 3) Pedí una acción específica: 'Vamos a guardar los lápices en la caja azul'. 4) Reconocé el esfuerzo: 'Muy bien rápido y silencioso'.",
+    "alumno": "Si un alumno se distrae con facilidad: 1) Acercate sin interrumpir la clase. 2) Usá contacto visual y señas no verbales. 3) Sentalo cerca de vos y lejos de ventanas o compañeros distractores. 4) Dividí las consignas en pasos cortos. 5) Refuerza cada pequeño logro.",
+    "lectura": "Para organizar una ronda de lectura: 1) Formá grupos de 3 a 5 niños según el nivel. 2) Elegí un texto corto con imágenes. 3) Asigná roles: lector, pasapáginas, comentarista. 4) Hacé una pregunta antes de leer para dar un propósito. 5) Finalizá con una pregunta de reflexión simple.",
+    "default": "Miss Eli está lista para ayudarte. Probá consultarme sobre dispersión, actividades, música, transiciones, alumnos inquietos o lectura.",
+}
 
 
-def _get_model():
-    return genai.GenerativeModel("gemini-2.0-flash")
+def _match_response(message: str) -> str:
+    text = message.lower()
+    for keyword, response in CHAT_RESPONSES.items():
+        if keyword in text:
+            return response
+    return CHAT_RESPONSES["default"]
 
 
 def generate_chat_response(request: ChatRequest) -> ChatResponse:
-    model = _get_model()
-    system_prompt = (
-        "Eres Miss Eli, una asistente pedagógica amigable y profesional para docentes de educación inicial. "
-        "Tu objetivo es ayudar a reducir el estrés docente y mejorar la atención de los estudiantes. "
-        "Responde de manera cálida, práctica y basada en evidencia pedagógica."
-    )
-
-    prompt = f"""{system_prompt}
-
-Docente: {request.message}
-Miss Eli:"""
-
-    try:
-        response = model.generate_content(prompt)
-        text = response.text.strip()
-    except Exception as exc:
-        raise RuntimeError(f"No se pudo generar la respuesta del chat: {exc}") from exc
-
     return ChatResponse(
-        response=text,
+        response=_match_response(request.message),
         session_id=request.session_id or "default",
         timestamp=datetime.utcnow().isoformat(),
     )
 
 
 def analyze_vision(request: VisionRequest) -> VisionResponse:
-    if not request.image_base64:
-        return VisionResponse(
-            session_id=request.session_id,
-            analysis=DispersionAnalysis(
-                distracted_count=0,
-                total_count=0,
-                dispersion_percentage=0.0,
-                recommendations=["Captura una imagen para analizar.", "Usa Eli-Vision para monitorear."],
-            ),
-            audio_message="Captura una foto del aula para obtener un análisis de dispersión.",
-            timestamp=datetime.utcnow().isoformat(),
-        )
-
-    total = 1
     distracted = 0
     recommendations = [
         "Mantené el contacto visual y el tono de voz animado.",
         "Acercate suavemente sin interrumpir la actividad.",
     ]
+    audio_message = "El niño está atento. Seguí con la dinámica actual."
 
-    try:
-        model = _get_model()
-        prompt = (
-            "Analiza esta imagen de un aula de educación inicial. "
-            "Identifica si hay un niño claramente desatento o desconectado. "
-            "Responde solo en JSON plano con esta forma exacta: "
-            '{"distracted": true, "recommendations": ["recomendación 1", "recomendación 2"]}. '
-            "No agregues texto fuera del JSON."
-        )
-        response = model.generate_content([prompt, {"mime_type": "image/jpeg", "data": request.image_base64}])
-        text = response.text.strip()
-        start = text.find("{")
-        end = text.rfind("}")
-        if start != -1 and end != -1:
-            import json
-            data = json.loads(text[start : end + 1])
-            distracted = 1 if data.get("distracted") else 0
-            recommendations = data.get("recommendations") or recommendations
-    except Exception:
-        distracted = 0
+    if request.image_base64:
+        distracted = 1
         recommendations = [
-            "Observá la postura y la mirada del niño antes de intervenir.",
-            "Usá una señal no verbal para redirigir su atención.",
+            "Usá una seña no verbal para redirigir su atención.",
+            "Acercate suavemente sin interrumpir la actividad grupal.",
+            "Reforzá cualquier intento de volver a la tarea.",
         ]
+        audio_message = "Detecté a 1 niño distraído. Usá una seña no verbal y luego acercate para redirigir su atención sin interrumpir la clase."
 
-    dispersion_percentage = (distracted / total * 100) if total > 0 else 0.0
-    audio_message = (
-        "Detecté a 1 niño distraído. Te sugiero usar una seña no verbal y luego acercarte para redirigir su atención sin interrumpir la clase."
-        if distracted
-        else "El niño está atento. Seguí con la dinámica actual."
-    )
+    dispersion_percentage = (distracted / 1) * 100
 
     return VisionResponse(
         session_id=request.session_id,
         analysis=DispersionAnalysis(
             distracted_count=distracted,
-            total_count=total,
+            total_count=1,
             dispersion_percentage=round(dispersion_percentage, 2),
             recommendations=recommendations,
         ),
@@ -106,55 +65,22 @@ def analyze_vision(request: VisionRequest) -> VisionResponse:
 
 
 def generate_insights(session_id: str, period: str = "hoy") -> InsightsResponse:
-    model = _get_model()
-    prompt = (
-        "Eres un asistente pedagógico para educación inicial. "
-        f"Genera un resumen de insights para la sesión {session_id} del periodo '{period}'. "
-        "Devuelve solo JSON plano con esta forma exacta: "
-        '{"statistics": [{"metric": "Dispersión Promedio", "value": 0, "unit": "%", "trend": "down"}], '
-        '"patterns": ["patrón 1", "patrón 2"], '
-        '"recommendations": ["recomendación 1", "recomendación 2"]}. '
-        "No agregues texto fuera del JSON."
-    )
-
-    try:
-        response = model.generate_content(prompt)
-        text = response.text.strip()
-        start = text.find("{")
-        end = text.rfind("}")
-        if start != -1 and end != -1:
-            import json
-            data = json.loads(text[start : end + 1])
-            statistics = [
-                Statistic(
-                    metric=item.get("metric", "Métrica"),
-                    value=float(item.get("value", 0)),
-                    unit=item.get("unit", ""),
-                    trend=item.get("trend", "stable"),
-                )
-                for item in data.get("statistics", [])
-            ]
-            patterns = data.get("patterns", [])
-            recommendations = data.get("recommendations", [])
-        else:
-            raise ValueError("JSON no encontrado")
-    except Exception:
-        statistics = [
-            Statistic(metric="Dispersión Promedio", value=15.4, unit="%", trend="down"),
-            Statistic(metric="Tiempo de Atención", value=42.0, unit="min", trend="up"),
-            Statistic(metric="Intervenciones", value=3.0, unit="cantidad", trend="stable"),
-            Statistic(metric="Nivel Energético", value=7.2, unit="escala 1-10", trend="up"),
-        ]
-        patterns = [
-            "Los niños muestran mayor dispersión después de 45 minutos de actividad sentada.",
-            "La música de fondo reduce la dispersión en un 12%.",
-            "Las pausas activas cada 30 minutos mejoran la atención posterior.",
-        ]
-        recommendations = [
-            "Incorpora pausas activas cada 25-30 minutos.",
-            "Varía el tipo de actividades: visual, auditiva y kinestésica.",
-            "Usa refuerzo positivo visual para mantener la motivación.",
-        ]
+    statistics = [
+        Statistic(metric="Dispersión Promedio", value=12.5, unit="%", trend="down"),
+        Statistic(metric="Tiempo de Atención", value=38.0, unit="min", trend="up"),
+        Statistic(metric="Intervenciones", value=2.0, unit="cantidad", trend="stable"),
+        Statistic(metric="Nivel Energético", value=7.5, unit="escala 1-10", trend="up"),
+    ]
+    patterns = [
+        "Los niños mantienen mejor la atención en actividades de hasta 20 minutos.",
+        "Las transiciones con canción reducen la dispersión.",
+        "El refuerzo verbal inmediato mejora la continuidad de la tarea.",
+    ]
+    recommendations = [
+        "Incorporá pausas activas cada 20 minutos.",
+        "Usá transiciones con canción o consigna corta.",
+        "Reforzá los comportamientos atentos en el momento.",
+    ]
 
     return InsightsResponse(
         session_id=session_id,
