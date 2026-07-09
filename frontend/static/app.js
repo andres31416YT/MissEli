@@ -4,6 +4,7 @@ const state = {
     currentTab: 'chat',
     sessionId: 'session-' + Date.now(),
     messages: [],
+    suggestionsCollapsed: false,
 };
 
 function init() {
@@ -12,6 +13,7 @@ function init() {
     setupVision();
     loadInsights();
     loadSuggestions();
+    setupSuggestionsToggle();
 }
 
 function setupTabs() {
@@ -55,6 +57,7 @@ function setupChat() {
         addMessage('user', message);
         input.value = '';
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        collapseSuggestions();
 
         const loadingId = addLoadingMessage();
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -138,6 +141,7 @@ const PRESET_SUGGESTIONS = [
 
 async function loadSuggestions() {
     const list = document.getElementById('suggestions-list');
+    const toggle = document.getElementById('suggestions-toggle');
     if (!list) return;
     list.innerHTML = '';
     PRESET_SUGGESTIONS.forEach(suggestion => {
@@ -150,8 +154,37 @@ async function loadSuggestions() {
                 input.value = suggestion;
                 input.focus();
             }
+            collapseSuggestions();
         });
         list.appendChild(chip);
+    });
+    if (toggle) {
+        toggle.textContent = state.suggestionsCollapsed ? 'Mostrar' : 'Ocultar';
+        toggle.setAttribute('aria-expanded', String(!state.suggestionsCollapsed));
+        list.style.display = state.suggestionsCollapsed ? 'none' : 'flex';
+    }
+}
+
+function collapseSuggestions() {
+    state.suggestionsCollapsed = true;
+    const list = document.getElementById('suggestions-list');
+    const toggle = document.getElementById('suggestions-toggle');
+    if (list) list.style.display = 'none';
+    if (toggle) {
+        toggle.textContent = 'Mostrar';
+        toggle.setAttribute('aria-expanded', 'false');
+    }
+}
+
+function setupSuggestionsToggle() {
+    const toggle = document.getElementById('suggestions-toggle');
+    if (!toggle) return;
+    toggle.addEventListener('click', () => {
+        state.suggestionsCollapsed = !state.suggestionsCollapsed;
+        const list = document.getElementById('suggestions-list');
+        if (list) list.style.display = state.suggestionsCollapsed ? 'none' : 'flex';
+        toggle.textContent = state.suggestionsCollapsed ? 'Mostrar' : 'Ocultar';
+        toggle.setAttribute('aria-expanded', String(!state.suggestionsCollapsed));
     });
 }
 
