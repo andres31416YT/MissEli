@@ -53,16 +53,22 @@ def analyze_vision(request: VisionRequest) -> VisionResponse:
             timestamp=datetime.utcnow().isoformat(),
         )
 
-    model = _get_model()
-    prompt = (
-        "Analiza esta imagen de un aula de educación inicial. "
-        "Estima cuántos niños hay en total y cuántos parecen distraídos o desconectados. "
-        "Responde solo en JSON plano con esta forma exacta: "
-        '{"total_children": 0, "distracted_children": 0, "recommendations": ["recomendación 1", "recomendación 2"]}. '
-        "No agregues texto fuera del JSON."
-    )
+    total = 1
+    distracted = 0
+    recommendations = [
+        "Mantené el contacto visual y el tono de voz animado.",
+        "Acercate suavemente sin interrumpir la actividad.",
+    ]
 
     try:
+        model = _get_model()
+        prompt = (
+            "Analiza esta imagen de un aula de educación inicial. "
+            "Identifica si hay un niño claramente desatento o desconectado. "
+            "Responde solo en JSON plano con esta forma exacta: "
+            '{"distracted": true, "recommendations": ["recomendación 1", "recomendación 2"]}. '
+            "No agregues texto fuera del JSON."
+        )
         response = model.generate_content([prompt, {"mime_type": "image/jpeg", "data": request.image_base64}])
         text = response.text.strip()
         start = text.find("{")
@@ -70,27 +76,20 @@ def analyze_vision(request: VisionRequest) -> VisionResponse:
         if start != -1 and end != -1:
             import json
             data = json.loads(text[start : end + 1])
-            total = int(data.get("total_children", 0))
-            distracted = int(data.get("distracted_children", 0))
-            recommendations = data.get("recommendations") or [
-                "Realiza una pausa activa.",
-                "Cambia de actividad.",
-            ]
-        else:
-            total = 10
-            distracted = 3
-            recommendations = ["Realiza una pausa activa.", "Cambia de actividad."]
+            distracted = 1 if data.get("distracted") else 0
+            recommendations = data.get("recommendations") or recommendations
     except Exception:
-        total = 10
-        distracted = 3
-        recommendations = ["Realiza una pausa activa.", "Cambia de actividad."]
+        distracted = 0
+        recommendations = [
+            "Observá la postura y la mirada del niño antes de intervenir.",
+            "Usá una señal no verbal para redirigir su atención.",
+        ]
 
     dispersion_percentage = (distracted / total * 100) if total > 0 else 0.0
     audio_message = (
-        f"Veo que aproximadamente {distracted} de {total} niños parecen distraídos. "
-        "Te sugiero realizar una pausa activa o cambiar de actividad."
-        if distracted > 0
-        else "El aula parece atenta. Continúa con la dinámica actual."
+        "Detecté a 1 niño distraído. Te sugiero usar una seña no verbal y luego acercarte para redirigir su atención sin interrumpir la clase."
+        if distracted
+        else "El niño está atento. Seguí con la dinámica actual."
     )
 
     return VisionResponse(

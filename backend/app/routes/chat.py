@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from app.schemas.chat import ChatRequest, ChatResponse
-from app.schemas.vision import VisionRequest, VisionResponse
-from app.services.openai_service import generate_chat_response, analyze_vision
+from app.services.openai_service import generate_chat_response
 
 router = APIRouter()
 
@@ -22,5 +21,8 @@ def chat_suggestions():
             "Dame una actividad para niños inquietos.",
             "¿Qué música de fondo recomiendas?",
             "Ayúdame con una transición suave.",
+            "Mi alumno se distrae con facilidad, ¿qué hago?",
+            "¿Cómo organizo una ronda de lectura?",
         ]
     }
+

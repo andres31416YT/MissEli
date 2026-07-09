@@ -94,24 +94,32 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+const PRESET_SUGGESTIONS = [
+    "¿Cómo reduzco la dispersión en el aula?",
+    "Dame una actividad para niños inquietos.",
+    "¿Qué música de fondo recomiendas?",
+    "Ayúdame con una transición suave.",
+    "Mi alumno se distrae con facilidad, ¿qué hago?",
+    "¿Cómo organizo una ronda de lectura?",
+];
+
 async function loadSuggestions() {
-    try {
-        const data = await api('/chat/suggestions');
-        const list = document.getElementById('suggestions-list');
-        list.innerHTML = '';
-        data.suggestions.forEach(suggestion => {
-            const chip = document.createElement('div');
-            chip.className = 'suggestion-chip';
-            chip.textContent = suggestion;
-            chip.addEventListener('click', () => {
-                document.getElementById('chat-input').value = suggestion;
-                document.getElementById('chat-input').focus();
-            });
-            list.appendChild(chip);
+    const list = document.getElementById('suggestions-list');
+    if (!list) return;
+    list.innerHTML = '';
+    PRESET_SUGGESTIONS.forEach(suggestion => {
+        const chip = document.createElement('div');
+        chip.className = 'suggestion-chip';
+        chip.textContent = suggestion;
+        chip.addEventListener('click', () => {
+            const input = document.getElementById('chat-input');
+            if (input) {
+                input.value = suggestion;
+                input.focus();
+            }
         });
-    } catch (error) {
-        console.error('Error loading suggestions:', error);
-    }
+        list.appendChild(chip);
+    });
 }
 
 function setupVision() {
