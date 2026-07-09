@@ -140,8 +140,19 @@ function setupVision() {
                         }),
                     });
                     showVisionResult(data);
+                    loadInsights();
                 } catch (error) {
-                    alert(`Error: ${error.message}`);
+                    console.error('Error en Eli-Vision:', error);
+                    const result = document.getElementById('vision-result');
+                    if (result) {
+                        result.style.display = 'block';
+                        document.getElementById('vision-metrics').innerHTML = `
+                            <div class="metric-card" style="grid-column: 1 / -1;">
+                                <div class="metric-value" style="color: var(--danger);">Error</div>
+                                <div class="metric-label">${error.message || 'No se pudo analizar la imagen'}</div>
+                            </div>
+                        `;
+                    }
                 } finally {
                     if (placeholder) placeholder.style.opacity = '1';
                 }

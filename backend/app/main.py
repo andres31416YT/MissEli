@@ -50,3 +50,9 @@ if os.path.exists(frontend_path):
         if full_path and os.path.isfile(file_path):
             return FileResponse(file_path)
         return FileResponse(os.path.join(frontend_path, "index.html"))
+
+    @app.options("/{full_path:path}")
+    def options_catch_all(full_path: str):
+        if full_path.startswith("api/") or full_path.startswith("health"):
+            return Response(status_code=204)
+        return Response(status_code=204)
