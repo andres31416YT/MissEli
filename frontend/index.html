@@ -48,6 +48,14 @@
                 </svg>
                 <span>Insights</span>
             </button>
+            <button class="tab" data-tab="children" aria-label="Niños">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <span>Niños</span>
+            </button>
         </nav>
 
         <main class="content">
@@ -144,6 +152,40 @@
                             </h3>
                             <ul id="recommendations-list" class="insights-list"></ul>
                         </div>
+                    </div>
+                </div>
+            </section>
+            <section id="children" class="tab-content">
+                <div class="children-container">
+                    <div class="children-header">
+                        <h2>Registro de Niños</h2>
+                        <p class="children-subtitle">Anotá observaciones y generá el perfil de conducta</p>
+                    </div>
+
+                    <form id="child-form" class="child-form">
+                        <input type="text" id="child-name" placeholder="Nombre del niño/a" autocomplete="off">
+                        <input type="number" id="child-age" placeholder="Edad" min="1" max="12">
+                        <button type="submit" aria-label="Agregar niño">Agregar</button>
+                    </form>
+
+                    <div id="children-list" class="children-list"></div>
+
+                    <div id="child-detail" class="child-detail" style="display:none">
+                        <div class="detail-header">
+                            <button id="child-back" class="child-back" aria-label="Volver">← Volver</button>
+                            <h3 id="child-detail-name"></h3>
+                        </div>
+
+                        <form id="note-form" class="note-form">
+                            <input type="text" id="note-input" placeholder="Escribí una observación..." autocomplete="off">
+                            <button type="submit" aria-label="Guardar nota">Guardar</button>
+                        </form>
+
+                        <div id="notes-list" class="notes-list"></div>
+
+                        <button id="analyze-btn" class="analyze-btn">Analizar conducta</button>
+
+                        <div id="analysis-result" class="analysis-result" style="display:none"></div>
                     </div>
                 </div>
             </section>

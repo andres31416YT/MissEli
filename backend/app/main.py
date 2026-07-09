@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 from app.core.config import settings
-from app.routes import chat, vision, insights
+from app.routes import chat, vision, insights, children
 import os
 
 app = FastAPI(
@@ -29,6 +29,7 @@ def health_check():
 app.include_router(chat.router, prefix=f"{settings.API_PREFIX}/chat", tags=["Eli-Chat"])
 app.include_router(vision.router, prefix=f"{settings.API_PREFIX}/vision", tags=["Eli-Vision"])
 app.include_router(insights.router, prefix=f"{settings.API_PREFIX}/insights", tags=["Eli-Insights"])
+app.include_router(children.router, prefix=f"{settings.API_PREFIX}/children", tags=["Registro de Niños"])
 
 frontend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
 if os.path.exists(frontend_path):

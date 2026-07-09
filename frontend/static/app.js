@@ -5,12 +5,14 @@ const state = {
     sessionId: 'session-' + Date.now(),
     messages: [],
     suggestionsCollapsed: false,
+    selectedChild: null,
 };
 
 function init() {
     setupTabs();
     setupChat();
     setupVision();
+    setupChildren();
     loadInsights();
     loadSuggestions();
     setupSuggestionsToggle();
@@ -26,6 +28,7 @@ function setupTabs() {
             if (target) target.classList.add('active');
             state.currentTab = tab.dataset.tab;
             if (state.currentTab === 'insights') loadInsights();
+            if (state.currentTab === 'children') loadChildren();
         });
     });
 }
@@ -339,6 +342,190 @@ function showInsights(data) {
 
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function setupChildren() {
+    const form = document.getElementById('child-form');
+    const list = document.getElementById('children-list');
+    const detail = document.getElementById('child-detail');
+    const noteForm = document.getElementById('note-form');
+    const backBtn = document.getElementById('child-back');
+    const analyzeBtn = document.getElementById('analyze-btn');
+
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('child-name').value.trim();
+            const ageRaw = document.getElementById('child-age').value.trim();
+            if (!name) return;
+            const body = { name };
+            if (ageRaw) body.age = parseInt(ageRaw, 10);
+            try {
+                await api('/children', { method: 'POST', body: JSON.stringify(body) });
+                form.reset();
+                await loadChildren();
+            } catch (error) {
+                alert(`Error al registrar: ${error.message}`);
+            }
+        });
+    }
+
+    if (backBtn) {
+        backBtn.addEventListener('click', () => {
+            detail.style.display = 'none';
+            if (list) list.style.display = '';
+            list.parentElement.scrollTop = 0;
+        });
+    }
+
+    if (noteForm) {
+        noteForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('note-input');
+            const content = input.value.trim();
+            if (!content || !state.selectedChild) return;
+            try {
+                await api(`/children/${state.selectedChild}/notes`, {
+                    method: 'POST',
+                    body: JSON.stringify({ content }),
+                });
+                input.value = '';
+                await openChild(state.selectedChild);
+            } catch (error) {
+                alert(`Error al guardar nota: ${error.message}`);
+            }
+        });
+    }
+
+    if (analyzeBtn) {
+        analyzeBtn.addEventListener('click', async () => {
+            if (!state.selectedChild) return;
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = 'Analizando...';
+            try {
+                const data = await api(`/children/${state.selectedChild}/analysis`);
+                await delay(600);
+                showAnalysis(data);
+            } catch (error) {
+                alert(`Error al analizar: ${error.message}`);
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = 'Analizar conducta';
+            }
+        });
+    }
+}
+
+async function loadChildren() {
+    const list = document.getElementById('children-list');
+    if (!list) return;
+    try {
+        const children = await api('/children');
+        if (!children.length) {
+            list.innerHTML = `<p class="empty-state">Aún no hay niños registrados. Agregá el primero arriba.</p>`;
+            return;
+        }
+        list.innerHTML = '';
+        children.forEach(child => {
+            const card = document.createElement('div');
+            card.className = 'child-card';
+            const ageText = child.age ? ` · ${child.age} años` : '';
+            const notesCount = child.notes ? child.notes.length : 0;
+            card.innerHTML = `
+                <div class="child-card-info">
+                    <div class="child-card-name">${escapeHtml(child.name)}</div>
+                    <div class="child-card-meta">${ageText} · ${notesCount} nota(s)</div>
+                </div>
+                <button class="child-card-open" aria-label="Abrir">Ver</button>
+            `;
+            card.querySelector('.child-card-open').addEventListener('click', () => openChild(child.id));
+            list.appendChild(card);
+        });
+    } catch (error) {
+        list.innerHTML = `<p class="empty-state">Error al cargar: ${escapeHtml(error.message)}</p>`;
+    }
+}
+
+async function openChild(childId) {
+    state.selectedChild = childId;
+    const detail = document.getElementById('child-detail');
+    const list = document.getElementById('children-list');
+    const result = document.getElementById('analysis-result');
+    if (result) result.style.display = 'none';
+    try {
+        const child = await api(`/children/${childId}`);
+        document.getElementById('child-detail-name').textContent = child.name;
+        detail.style.display = 'block';
+        if (list) list.style.display = 'none';
+        renderNotes(child.notes || []);
+    } catch (error) {
+        alert(`Error: ${error.message}`);
+    }
+}
+
+function renderNotes(notes) {
+    const container = document.getElementById('notes-list');
+    if (!container) return;
+    if (!notes.length) {
+        container.innerHTML = `<p class="empty-state">Sin observaciones todavía.</p>`;
+        return;
+    }
+    container.innerHTML = notes.map(note => `
+        <div class="note-item">
+            <p class="note-content">${escapeHtml(note.content)}</p>
+            <span class="note-time">${escapeHtml(formatTime(note.timestamp))}</span>
+        </div>
+    `).join('');
+}
+
+function showAnalysis(data) {
+    const container = document.getElementById('analysis-result');
+    if (!container) return;
+    container.style.display = 'block';
+    const dims = data.dimensions.map(d => `
+        <div class="behavior-dim">
+            <div class="behavior-dim-head">
+                <span class="behavior-dim-name">${escapeHtml(d.dimension)}</span>
+                <span class="behavior-dim-level level-${levelClass(d.level)}">${escapeHtml(d.level)} · ${d.score}</span>
+            </div>
+            <div class="behavior-bar"><div class="behavior-bar-fill level-${levelClass(d.level)}" style="width:${d.score}%"></div></div>
+            <p class="behavior-evidence">${escapeHtml(d.evidence)}</p>
+        </div>
+    `).join('');
+
+    const strengths = data.strengths.map(s => `<li>${escapeHtml(s)}</li>`).join('');
+    const recs = data.recommendations.map(r => `<li>${escapeHtml(r)}</li>`).join('');
+
+    container.innerHTML = `
+        <div class="analysis-head">
+            <h3>Análisis de Conducta</h3>
+            <span class="analysis-count">${data.notes_count} nota(s)</span>
+        </div>
+        <p class="analysis-summary">${escapeHtml(data.summary)}</p>
+        <div class="behavior-dims">${dims}</div>
+        <div class="insights-card">
+            <h3 class="insights-card-title">Fortalezas</h3>
+            <ul class="insights-list">${strengths}</ul>
+        </div>
+        <div class="insights-card">
+            <h3 class="insights-card-title">Recomendaciones</h3>
+            <ul class="insights-list">${recs}</ul>
+        </div>
+    `;
+    container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function levelClass(level) {
+    const map = { 'Alto': 'good', 'Medio': 'mid', 'Bajo': 'low', 'Muy bajo': 'low', 'Sin datos': 'mid' };
+    return map[level] || 'mid';
+}
+
+function formatTime(iso) {
+    try {
+        return new Date(iso).toLocaleString('es');
+    } catch {
+        return iso;
+    }
 }
 
 document.addEventListener('DOMContentLoaded', init);
