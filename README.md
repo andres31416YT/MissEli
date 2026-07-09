@@ -12,7 +12,7 @@
 
 - **Backend**: FastAPI + Python
 - **Frontend**: HTML5 + CSS3 + JavaScript vanilla
-- **IA**: OpenAI GPT-4o
+- **IA**: Google Gemini
 - **Deploy**: Render
 
 ## Deploy en Render
@@ -20,11 +20,11 @@
 1. Hacé fork de este repositorio
 2. Creá un nuevo **Web Service** en [Render](https://render.com)
 3. Conectá tu repositorio de GitHub
-4. Configurá las variables de entorno:
-   - `OPENAI_API_KEY`: Tu clave de OpenAI
+ 4. Configurá las variables de entorno:
+    - `OPENAI_API_KEY`: Tu clave de Gemini
 5. Render detectará automáticamente el `Dockerfile` y desplegará la aplicación
 
-La aplicación estará disponible en: `https://misseli-backend.onrender.com`
+La aplicación estará disponible en: `https://misseli.onrender.com`
 
 ## Desarrollo Local
 

@@ -31,7 +31,7 @@ Panel de control para la mejora continua.
 ## 4. Stack Tecnológico
 * **Lenguaje:** **Python** (Versatilidad, rapidez y ecosistema robusto de IA).
 * **Framework Backend:** **FastAPI** (Rendimiento asíncrono, alta velocidad y validación automática).
-* **Procesamiento de IA:** **OpenAI GPT-4o** (vía API).
+* **Procesamiento de IA:** **Google Gemini** (vía API).
 * **Visión:** Captura de *snapshots* vía cámara web (procesamiento visual).
 * **Frontend:** HTML5, CSS3, JavaScript vanilla (mobile-first).
 * **Contenedores:** **Docker** (Aislamiento de servicios y portabilidad).
@@ -45,13 +45,13 @@ Panel de control para la mejora continua.
 
 ## 6. Flujo de Comunicación
 1. **Frontend:** El usuario envía comandos o imágenes desde el navegador.
-2. **Backend (Render):** FastAPI procesa la lógica, gestiona la sesión y consulta a la API de OpenAI.
+2. **Backend (Render):** FastAPI procesa la lógica, gestiona la sesión y consulta a la API de Gemini.
 3. **Respuesta:** La IA retorna la acción (texto, metadatos o comando de audio), la cual es ejecutada por el agente.
 
 ## 7. Variables de Entorno
 | Variable | Descripción |
 |----------|-------------|
-| `OPENAI_API_KEY` | Clave de API de OpenAI para GPT-4o |
+| `OPENAI_API_KEY` | Clave de API de Gemini |
 
 ## 8. Despliegue en Render
 
@@ -63,11 +63,11 @@ Panel de control para la mejora continua.
    - **Runtime:** Docker
    - **Dockerfile Path:** `./backend/Dockerfile`
    - **Plan:** Free (o superior según necesidades)
-5. Agregar variable de entorno `OPENAI_API_KEY`
+ 5. Agregar variable de entorno `OPENAI_API_KEY` con la clave de Gemini
 6. Deploy automático en cada push a main
 
 ### URL de acceso:
 Una vez desplegado, la aplicación estará disponible en:
 ```
-https://misseli-backend.onrender.com
+https://misseli.onrender.com
 ```
