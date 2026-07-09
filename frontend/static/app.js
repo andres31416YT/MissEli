@@ -56,14 +56,20 @@ function setupChat() {
         input.value = '';
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
+        const loadingId = addLoadingMessage();
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
         try {
             const data = await api('/chat/message', {
                 method: 'POST',
                 body: JSON.stringify({ message, session_id: state.sessionId }),
             });
+            await delay(600);
+            removeLoadingMessage(loadingId);
             addMessage('assistant', data.response);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         } catch (error) {
+            removeLoadingMessage(loadingId);
             addMessage('assistant', `Error: ${error.message}`);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
@@ -86,6 +92,33 @@ function addMessage(role, text) {
     div.appendChild(avatar);
     div.appendChild(content);
     container.appendChild(div);
+    return div;
+}
+
+function addLoadingMessage() {
+    const container = document.getElementById('chat-messages');
+    const div = document.createElement('div');
+    div.className = 'message assistant loading-message';
+    
+    const avatar = document.createElement('div');
+    avatar.className = 'message-avatar';
+    avatar.textContent = '🌟';
+    
+    const content = document.createElement('div');
+    content.className = 'message-content loading-content';
+    content.innerHTML = '<span class="loading-dots"><span>.</span><span>.</span><span>.</span></span>';
+    
+    div.appendChild(avatar);
+    div.appendChild(content);
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    return div;
+}
+
+function removeLoadingMessage(div) {
+    if (div && div.parentNode) {
+        div.parentNode.removeChild(div);
+    }
 }
 
 function escapeHtml(text) {
@@ -139,6 +172,21 @@ function setupVision() {
                 const placeholder = document.querySelector('.camera-placeholder');
                 if (placeholder) placeholder.style.opacity = '0.5';
 
+                const result = document.getElementById('vision-result');
+                if (result) {
+                    result.style.display = 'block';
+                    document.getElementById('vision-metrics').innerHTML = `
+                        <div class="metric-card analyzing-state" style="grid-column: 1 / -1;">
+                            <div class="analyzing-spinner"></div>
+                            <span>Analizando imagen...</span>
+                        </div>
+                    `;
+                    document.getElementById('result-badge').textContent = 'En proceso';
+                    document.getElementById('result-badge').style.background = '#dbeafe';
+                    document.getElementById('result-badge').style.color = '#1e40af';
+                    document.getElementById('vision-audio').textContent = '';
+                }
+
                 try {
                     const data = await api('/vision/analyze', {
                         method: 'POST',
@@ -147,11 +195,11 @@ function setupVision() {
                             image_base64: base64,
                         }),
                     });
+                    await delay(800);
                     showVisionResult(data);
                     loadInsights();
                 } catch (error) {
                     console.error('Error en Eli-Vision:', error);
-                    const result = document.getElementById('vision-result');
                     if (result) {
                         result.style.display = 'block';
                         document.getElementById('vision-metrics').innerHTML = `
@@ -160,6 +208,9 @@ function setupVision() {
                                 <div class="metric-label">${error.message || 'No se pudo analizar la imagen'}</div>
                             </div>
                         `;
+                        document.getElementById('result-badge').textContent = 'Error';
+                        document.getElementById('result-badge').style.background = '#fee2e2';
+                        document.getElementById('result-badge').style.color = '#991b1b';
                     }
                 } finally {
                     if (placeholder) placeholder.style.opacity = '1';
@@ -251,6 +302,10 @@ function showInsights(data) {
 
     const recList = document.getElementById('recommendations-list');
     recList.innerHTML = data.recommendations.map(r => `<li>${r}</li>`).join('');
+}
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 document.addEventListener('DOMContentLoaded', init);
