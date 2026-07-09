@@ -865,59 +865,6 @@ html, body {
     color: var(--text-light);
 }
 
-.child-form {
-    display: flex;
-    gap: 8px;
-    background: var(--surface);
-    padding: 12px;
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-sm);
-}
-
-.child-form input {
-    padding: 10px 12px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    font-size: 14px;
-    font-family: inherit;
-    outline: none;
-    background: var(--bg);
-    transition: var(--transition);
-}
-
-.child-form input[type="text"] {
-    flex: 1;
-    min-width: 0;
-}
-
-.child-form input[type="number"] {
-    width: 64px;
-}
-
-.child-form input:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-.child-form button {
-    padding: 10px 16px;
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    color: white;
-    border: none;
-    border-radius: var(--radius-sm);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: var(--transition);
-    flex-shrink: 0;
-}
-
-.child-form button:hover {
-    transform: scale(1.03);
-    box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.4);
-}
-
 .children-list {
     display: flex;
     flex-direction: column;
