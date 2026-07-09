@@ -401,7 +401,10 @@ const DIMENSIONS = {
 function loadChildrenStore() {
     try {
         const raw = localStorage.getItem(CHILDREN_KEY);
-        if (raw) return JSON.parse(raw);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
     } catch (e) {
         console.warn('No se pudo leer el registro local:', e);
     }
