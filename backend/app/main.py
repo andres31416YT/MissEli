@@ -23,7 +23,12 @@ app.add_middleware(
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "app": settings.APP_NAME, "version": settings.APP_VERSION}
+    return {
+        "status": "ok",
+        "app": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+        "gemini_key_configured": bool(settings.API_KEY_OPEN_AI),
+    }
 
 
 app.include_router(chat.router, prefix=f"{settings.API_PREFIX}/chat", tags=["Eli-Chat"])
