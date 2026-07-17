@@ -51,13 +51,60 @@ function setupChat() {
     const form = document.getElementById('chat-form');
     const input = document.getElementById('chat-input');
     const messagesContainer = document.getElementById('chat-messages');
+    const attachBtn = document.getElementById('chat-attach');
+    const fileInput = document.getElementById('chat-file');
+    const preview = document.getElementById('chat-attach-preview');
+
+    state.pendingFile = null;
+
+    if (attachBtn && fileInput) {
+        attachBtn.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            state.pendingFile = file;
+            preview.innerHTML = '';
+            preview.style.display = 'flex';
+
+            const thumb = document.createElement('img');
+            const name = document.createElement('span');
+            name.className = 'attach-name';
+            name.textContent = file.name;
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'attach-remove';
+            remove.textContent = '×';
+            remove.setAttribute('aria-label', 'Quitar archivo');
+            remove.addEventListener('click', () => {
+                state.pendingFile = null;
+                fileInput.value = '';
+                preview.style.display = 'none';
+                preview.innerHTML = '';
+            });
+
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (ev) => { thumb.src = ev.target.result; };
+                reader.readAsDataURL(file);
+            }
+            preview.appendChild(thumb);
+            preview.appendChild(name);
+            preview.appendChild(remove);
+        });
+    }
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const message = input.value.trim();
-        if (!message) return;
+        const file = state.pendingFile;
+        if (!message && !file) return;
 
-        addMessage('user', message);
+        if (file) {
+            addMessage('user', message || `📎 ${file.name}`);
+        } else {
+            addMessage('user', message);
+        }
         input.value = '';
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
         collapseSuggestions();
@@ -66,19 +113,54 @@ function setupChat() {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
         try {
-            const data = await api('/chat/message', {
-                method: 'POST',
-                body: JSON.stringify({ message, session_id: state.sessionId }),
-            });
-            await delay(600);
-            removeLoadingMessage(loadingId);
-            addMessage('assistant', data.response);
+            let data;
+            if (file && file.type.startsWith('image/')) {
+                const base64 = await fileToBase64(file);
+                data = await api('/vision/analyze', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        session_id: state.sessionId,
+                        image_base64: base64.split(',')[1],
+                    }),
+                });
+                await delay(800);
+                removeLoadingMessage(loadingId);
+                const recs = (data.analysis.recommendations || []).join('\n• ');
+                const text = `${data.audio_message || ''}` +
+                    (recs ? `\n\nRecomendaciones:\n• ${recs}` : '');
+                addMessage('assistant', text.trim());
+                loadInsights();
+            } else {
+                data = await api('/chat/message', {
+                    method: 'POST',
+                    body: JSON.stringify({ message, session_id: state.sessionId }),
+                });
+                await delay(600);
+                removeLoadingMessage(loadingId);
+                addMessage('assistant', data.response);
+            }
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         } catch (error) {
             removeLoadingMessage(loadingId);
             addMessage('assistant', `Error: ${error.message}`);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        } finally {
+            state.pendingFile = null;
+            if (fileInput) fileInput.value = '';
+            if (preview) {
+                preview.style.display = 'none';
+                preview.innerHTML = '';
+            }
         }
+    });
+}
+
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
     });
 }
 

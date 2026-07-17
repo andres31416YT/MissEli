@@ -1,61 +1,148 @@
+import base64
+import io
+import re
 from datetime import datetime
+from typing import Optional
+
+import google.generativeai as genai
+from PIL import Image
+
 from app.core.config import settings
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.schemas.vision import VisionRequest, VisionResponse, DispersionAnalysis
 from app.schemas.insights import InsightsResponse, Statistic
 
-
-CHAT_RESPONSES = {
-    "dispersión": "Para reducir la dispersión en el aula, podés probar estas estrategias: 1) Usá transiciones claras entre actividades. 2) Incorporá movimiento cada 20-25 minutos. 3) Mantené el contacto visual y variá el tono de voz. 4) Usá materiales concretos y manipulables.",
-    "actividad": "Acá tenés una actividad para niños inquietos: 'El detective de sonidos'. Pedí a los niños que caminen por el aula y, cuando digas un sonido, deben congelarse y señalar de dónde viene. Trabaja atención, escucha y control motor.",
-    "música": "Te recomiendo música instrumental suave, canciones infantiles acústicas o sonidos de la naturaleza. Evitá letras en este momento. Podés usar playlists de 'Música para aprender' o 'Sonidos de aula tranquila'.",
-    "transición": "Para una transición suave: 1) Avisá con anticipación: 'En 2 minutos cambiamos de actividad'. 2) Usá una canción o señal ritual. 3) Pedí una acción específica: 'Vamos a guardar los lápices en la caja azul'. 4) Reconocé el esfuerzo: 'Muy bien rápido y silencioso'.",
-    "alumno": "Si un alumno se distrae con facilidad: 1) Acercate sin interrumpir la clase. 2) Usá contacto visual y señas no verbales. 3) Sentalo cerca de vos y lejos de ventanas o compañeros distractores. 4) Dividí las consignas en pasos cortos. 5) Refuerza cada pequeño logro.",
-    "lectura": "Para organizar una ronda de lectura: 1) Formá grupos de 3 a 5 niños según el nivel. 2) Elegí un texto corto con imágenes. 3) Asigná roles: lector, pasapáginas, comentarista. 4) Hacé una pregunta antes de leer para dar un propósito. 5) Finalizá con una pregunta de reflexión simple.",
-    "default": "Miss Eli está lista para ayudarte. Probá consultarme sobre dispersión, actividades, música, transiciones, alumnos inquietos o lectura.",
-}
+SYSTEM_PROMPT = (
+    "Sos Miss Eli, una asistente pedagógica especializada en educación inicial. "
+    "Respondé en español, con un tono cálido, cercano y práctico para docentes. "
+    "Dá recomendaciones concretas, breves y aplicables en el aula."
+)
 
 
-def _match_response(message: str) -> str:
-    text = message.lower()
-    for keyword, response in CHAT_RESPONSES.items():
-        if keyword in text:
-            return response
-    return CHAT_RESPONSES["default"]
+def _configure():
+    if not getattr(_configure, "_initialized", False):
+        genai.configure(api_key=settings.API_KEY_OPEN_AI)
+        _configure._initialized = True
+
+
+def _chat_model():
+    _configure()
+    return genai.GenerativeModel(
+        "gemini-1.5-flash",
+        system_instruction=SYSTEM_PROMPT,
+    )
+
+
+def _clean(text: str) -> str:
+    text = re.sub(r"^```(?:json|text|markdown)?\s*", "", text.strip())
+    text = re.sub(r"```$", "", text.strip())
+    return text.strip()
 
 
 def generate_chat_response(request: ChatRequest) -> ChatResponse:
+    prompt = request.message
+    try:
+        model = _chat_model()
+        result = model.generate_content(prompt)
+        reply = _clean(result.text)
+    except Exception as e:
+        reply = (
+            "Lo siento, en este momento no puedo conectarme con la asistente. "
+            f"Detalle: {str(e)}"
+        )
+
     return ChatResponse(
-        response=_match_response(request.message),
+        response=reply,
         session_id=request.session_id or "default",
         timestamp=datetime.utcnow().isoformat(),
     )
 
 
-def analyze_vision(request: VisionRequest) -> VisionResponse:
+def _parse_dispersion(text: str, total_count: int):
     distracted = 0
-    recommendations = [
-        "Mantené el contacto visual y el tono de voz animado.",
-        "Acercate suavemente sin interrumpir la actividad.",
-    ]
-    audio_message = "El niño está atento. Seguí con la dinámica actual."
+    recommendations = []
+    audio_message = ""
 
-    if request.image_base64:
-        distracted = 1
+    match = re.search(r"distra(?:í|i)dos?\s*[:=]?\s*(\d+)", text, re.IGNORECASE)
+    if match:
+        distracted = int(match.group(1))
+
+    recs = re.findall(r"[-*]\s*(.+)", text)
+    if recs:
+        recommendations = [r.strip() for r in recs]
+    else:
+        sentences = [s.strip() for s in re.split(r"(?<=[.])\s+", text) if s.strip()]
+        recommendations = sentences[:3]
+
+    distracted = min(max(distracted, 0), total_count)
+    dispersion_percentage = round((distracted / total_count) * 100, 2) if total_count else 0.0
+
+    if distracted == 0:
+        audio_message = "El grupo está atento. Seguí con la dinámica actual."
+    elif dispersion_percentage > 40:
+        audio_message = (
+            f"Detecté a {distracted} niño(s) distraído(s). Redirigí la atención con "
+            "una seña no verbal y acercate sin interrumpir la clase."
+        )
+    else:
+        audio_message = (
+            f"Detecté a {distracted} niño(s) distraído(s). Reforsá la atención con "
+            "un estímulo breve."
+        )
+
+    if not recommendations:
         recommendations = [
-            "Usá una seña no verbal para redirigir su atención.",
-            "Acercate suavemente sin interrumpir la actividad grupal.",
-            "Reforzá cualquier intento de volver a la tarea.",
+            "Mantené el contacto visual y el tono de voz animado.",
+            "Acercate suavemente sin interrumpir la actividad.",
         ]
-        audio_message = "Detecté a 1 niño distraído. Usá una seña no verbal y luego acercate para redirigir su atención sin interrumpir la clase."
 
-    dispersion_percentage = (distracted / 1) * 100
+    return distracted, dispersion_percentage, recommendations, audio_message
+
+
+def analyze_vision(request: VisionRequest) -> VisionResponse:
+    total_count = 1
+
+    prompt = (
+        "Sos el módulo de visión de Miss Eli. Analizá esta imagen de un aula de "
+        "educación inicial. Indicá cuántos niños aparecen distraídos con el formato "
+        "'Distraídos: N'. Luego da hasta 3 recomendaciones concretas para el docente, "
+        "una por línea precedida por '-'."
+    )
+
+    try:
+        _configure()
+        model = genai.GenerativeModel("gemini-1.5-flash")
+
+        parts = [prompt]
+        if request.image_base64:
+            try:
+                image_bytes = base64.b64decode(request.image_base64)
+                img = Image.open(io.BytesIO(image_bytes))
+                parts.append(img)
+                total_count = 1
+            except Exception:
+                parts.append(request.image_base64)
+
+        result = model.generate_content(parts)
+        text = _clean(result.text)
+        distracted, dispersion_percentage, recommendations, audio_message = _parse_dispersion(text, total_count)
+    except Exception as e:
+        distracted = 0
+        dispersion_percentage = 0.0
+        recommendations = [
+            "Mantené el contacto visual y el tono de voz animado.",
+            "Acercate suavemente sin interrumpir la actividad.",
+        ]
+        audio_message = (
+            "No pude analizar la imagen en este momento. "
+            f"Detalle: {str(e)}"
+        )
 
     return VisionResponse(
         session_id=request.session_id,
         analysis=DispersionAnalysis(
             distracted_count=distracted,
-            total_count=1,
+            total_count=total_count,
             dispersion_percentage=round(dispersion_percentage, 2),
             recommendations=recommendations,
         ),

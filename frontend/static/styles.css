@@ -481,6 +481,52 @@ html, body {
     transform: scale(0.98);
 }
 
+.chat-form .chat-attach {
+    background: var(--surface);
+    color: var(--primary);
+    border: 1px solid var(--border);
+}
+
+.chat-form .chat-attach:hover {
+    background: var(--bg);
+    box-shadow: var(--shadow-sm);
+}
+
+.attach-preview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+}
+
+.attach-preview img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+.attach-preview .attach-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.attach-preview .attach-remove {
+    background: none;
+    border: none;
+    color: var(--danger, #ef4444);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+}
+
 .vision-container {
     display: flex;
     flex-direction: column;

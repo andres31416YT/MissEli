@@ -51,7 +51,7 @@ Panel de control para la mejora continua.
 ## 7. Variables de Entorno
 | Variable | Descripción |
 |----------|-------------|
-| `OPENAI_API_KEY` | Clave de API de Gemini |
+| `API_KEY_OPEN_AI` | Clave de API de Google Gemini (la variable conserva este nombre por compatibilidad) |
 
 ## 8. Despliegue en Render
 
@@ -63,7 +63,7 @@ Panel de control para la mejora continua.
    - **Runtime:** Docker
    - **Dockerfile Path:** `./backend/Dockerfile`
    - **Plan:** Free (o superior según necesidades)
- 5. Agregar variable de entorno `OPENAI_API_KEY` con la clave de Gemini
+  5. Agregar variable de entorno `API_KEY_OPEN_AI` con la clave de Google Gemini
 6. Deploy automático en cada push a main
 
 ### URL de acceso:

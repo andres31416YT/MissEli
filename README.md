@@ -21,7 +21,7 @@
 2. Creá un nuevo **Web Service** en [Render](https://render.com)
 3. Conectá tu repositorio de GitHub
  4. Configurá las variables de entorno:
-    - `OPENAI_API_KEY`: Tu clave de Gemini
+     - `API_KEY_OPEN_AI`: Tu clave de Google Gemini
 5. Render detectará automáticamente el `Dockerfile` y desplegará la aplicación
 
 La aplicación estará disponible en: `https://misseli.onrender.com`

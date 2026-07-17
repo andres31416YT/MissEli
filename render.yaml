@@ -7,7 +7,7 @@ services:
     branch: main
     dockerfilePath: ./backend/Dockerfile
     envVars:
-      - key: OPENAI_API_KEY
+      - key: API_KEY_OPEN_AI
         sync: false
     healthCheckPath: /health
     autoDeploy: true
