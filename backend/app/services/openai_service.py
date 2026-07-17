@@ -58,50 +58,28 @@ def generate_chat_response(request: ChatRequest) -> ChatResponse:
     )
 
 
-def _parse_dispersion(text: str, total_count: int):
-    distracted = 0
-    recommendations = []
-    audio_message = ""
-
-    match = re.search(r"distra(?:í|i)dos?\s*[:=]?\s*(\d+)", text, re.IGNORECASE)
-    if match:
-        distracted = int(match.group(1))
-
-    recs = re.findall(r"[-*]\s*(.+)", text)
-    if recs:
-        recommendations = [r.strip() for r in recs]
-    else:
-        sentences = [s.strip() for s in re.split(r"(?<=[.])\s+", text) if s.strip()]
-        recommendations = sentences[:3]
-
-    distracted = min(max(distracted, 0), total_count)
-    dispersion_percentage = round((distracted / total_count) * 100, 2) if total_count else 0.0
-
-    if distracted == 0:
-        audio_message = "El grupo está atento. Seguí con la dinámica actual."
-    elif dispersion_percentage > 40:
-        audio_message = (
-            f"Detecté a {distracted} niño(s) distraído(s). Redirigí la atención con "
-            "una seña no verbal y acercate sin interrumpir la clase."
-        )
-    else:
-        audio_message = (
-            f"Detecté a {distracted} niño(s) distraído(s). Reforsá la atención con "
-            "un estímulo breve."
-        )
-
-    return distracted, dispersion_percentage, recommendations, audio_message
+def _parse_json_block(text: str):
+    try:
+        start = text.find("{")
+        end = text.rfind("}") + 1
+        if start == -1 or end == 0:
+            return None
+        return json.loads(text[start:end])
+    except Exception:
+        return None
 
 
 def analyze_vision(request: VisionRequest) -> VisionResponse:
     client = _get_client()
-    total_count = 1
 
     prompt = (
-        "Sos el módulo de visión de Miss Eli. Analizá esta imagen de un aula de "
-        "educación inicial. Indicá cuántos niños aparecen distraídos con el formato "
-        "'Distraídos: N'. Luego da hasta 3 recomendaciones concretas para el docente, "
-        "una por línea precedida por '-'."
+        "Sos el módulo de visión de Miss Eli para educación inicial. Analizá esta "
+        "imagen de un aula. Contá cuántos niños aparecen en total y cuántos están "
+        "distraídos (mirando otro lado, sin prestar atención, haciendo otra cosa). "
+        "Respondé SOLO con un objeto JSON con esta forma exacta: "
+        '{"total_ninos": 0, "ninos_distraidos": 0, "recomendaciones": ["...", "..."]}. '
+        "Si no podés ver niños con claridad, usá 0 en ambos. "
+        "En 'recomendaciones' da hasta 3 sugerencias concretas para el docente."
     )
 
     contents = [prompt]
@@ -113,14 +91,40 @@ def analyze_vision(request: VisionRequest) -> VisionResponse:
 
     response = client.models.generate_content(model=MODEL, contents=contents)
     text = _clean(response.text)
-    distracted, dispersion_percentage, recommendations, audio_message = _parse_dispersion(text, total_count)
+    data = _parse_json_block(text)
+
+    if not data:
+        total_count = 0
+        distracted = 0
+        recommendations = [text] if text else ["No se pudo analizar la imagen."]
+    else:
+        total_count = int(data.get("total_ninos", 0) or 0)
+        distracted = int(data.get("ninos_distraidos", 0) or 0)
+        distracted = min(max(distracted, 0), total_count)
+        recommendations = data.get("recomendaciones", []) or []
+
+    dispersion_percentage = round((distracted / total_count) * 100, 2) if total_count else 0.0
+    attention_percentage = round(100 - dispersion_percentage, 2)
+
+    if distracted == 0:
+        audio_message = "El grupo está atento. Seguí con la dinámica actual."
+    elif dispersion_percentage >= 50:
+        audio_message = (
+            f"Detecté a {distracted} de {total_count} niño(s) distraído(s). "
+            "Redirigí la atención con una seña no verbal y acercate sin interrumpir la clase."
+        )
+    else:
+        audio_message = (
+            f"Detecté a {distracted} de {total_count} niño(s) distraído(s). "
+            "Reforsá la atención con un estímulo breve."
+        )
 
     return VisionResponse(
         session_id=request.session_id,
         analysis=DispersionAnalysis(
             distracted_count=distracted,
             total_count=total_count,
-            dispersion_percentage=round(dispersion_percentage, 2),
+            dispersion_percentage=dispersion_percentage,
             recommendations=recommendations,
         ),
         audio_message=audio_message,
