@@ -1,16 +1,19 @@
 import base64
 import io
+import json
 import re
 from datetime import datetime
-from typing import Optional
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from PIL import Image
 
 from app.core.config import settings
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.schemas.vision import VisionRequest, VisionResponse, DispersionAnalysis
 from app.schemas.insights import InsightsResponse, Statistic
+
+MODEL = "gemini-1.5-flash"
 
 SYSTEM_PROMPT = (
     "Sos Miss Eli, una asistente pedagógica especializada en educación inicial. "
@@ -19,18 +22,18 @@ SYSTEM_PROMPT = (
 )
 
 
-def _configure():
-    if not getattr(_configure, "_initialized", False):
-        genai.configure(api_key=settings.API_KEY_OPEN_AI)
-        _configure._initialized = True
+_client = None
 
 
-def _chat_model():
-    _configure()
-    return genai.GenerativeModel(
-        "gemini-1.5-flash",
-        system_instruction=SYSTEM_PROMPT,
-    )
+def _get_client():
+    global _client
+    if _client is None:
+        if not settings.API_KEY_OPEN_AI:
+            raise RuntimeError(
+                "Falta la API key de Gemini. Configurá la variable API_KEY_OPEN_AI."
+            )
+        _client = genai.Client(api_key=settings.API_KEY_OPEN_AI)
+    return _client
 
 
 def _clean(text: str) -> str:
@@ -40,16 +43,13 @@ def _clean(text: str) -> str:
 
 
 def generate_chat_response(request: ChatRequest) -> ChatResponse:
-    prompt = request.message
-    try:
-        model = _chat_model()
-        result = model.generate_content(prompt)
-        reply = _clean(result.text)
-    except Exception as e:
-        reply = (
-            "Lo siento, en este momento no puedo conectarme con la asistente. "
-            f"Detalle: {str(e)}"
-        )
+    client = _get_client()
+    response = client.models.generate_content(
+        model=MODEL,
+        contents=request.message,
+        config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT),
+    )
+    reply = _clean(response.text)
 
     return ChatResponse(
         response=reply,
@@ -90,16 +90,11 @@ def _parse_dispersion(text: str, total_count: int):
             "un estímulo breve."
         )
 
-    if not recommendations:
-        recommendations = [
-            "Mantené el contacto visual y el tono de voz animado.",
-            "Acercate suavemente sin interrumpir la actividad.",
-        ]
-
     return distracted, dispersion_percentage, recommendations, audio_message
 
 
 def analyze_vision(request: VisionRequest) -> VisionResponse:
+    client = _get_client()
     total_count = 1
 
     prompt = (
@@ -109,34 +104,16 @@ def analyze_vision(request: VisionRequest) -> VisionResponse:
         "una por línea precedida por '-'."
     )
 
-    try:
-        _configure()
-        model = genai.GenerativeModel("gemini-1.5-flash")
-
-        parts = [prompt]
-        if request.image_base64:
-            try:
-                image_bytes = base64.b64decode(request.image_base64)
-                img = Image.open(io.BytesIO(image_bytes))
-                parts.append(img)
-                total_count = 1
-            except Exception:
-                parts.append(request.image_base64)
-
-        result = model.generate_content(parts)
-        text = _clean(result.text)
-        distracted, dispersion_percentage, recommendations, audio_message = _parse_dispersion(text, total_count)
-    except Exception as e:
-        distracted = 0
-        dispersion_percentage = 0.0
-        recommendations = [
-            "Mantené el contacto visual y el tono de voz animado.",
-            "Acercate suavemente sin interrumpir la actividad.",
-        ]
-        audio_message = (
-            "No pude analizar la imagen en este momento. "
-            f"Detalle: {str(e)}"
+    contents = [prompt]
+    if request.image_base64:
+        image_bytes = base64.b64decode(request.image_base64)
+        contents.append(
+            types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg")
         )
+
+    response = client.models.generate_content(model=MODEL, contents=contents)
+    text = _clean(response.text)
+    distracted, dispersion_percentage, recommendations, audio_message = _parse_dispersion(text, total_count)
 
     return VisionResponse(
         session_id=request.session_id,
@@ -152,22 +129,34 @@ def analyze_vision(request: VisionRequest) -> VisionResponse:
 
 
 def generate_insights(session_id: str, period: str = "hoy") -> InsightsResponse:
-    statistics = [
-        Statistic(metric="Dispersión Promedio", value=12.5, unit="%", trend="down"),
-        Statistic(metric="Tiempo de Atención", value=38.0, unit="min", trend="up"),
-        Statistic(metric="Intervenciones", value=2.0, unit="cantidad", trend="stable"),
-        Statistic(metric="Nivel Energético", value=7.5, unit="escala 1-10", trend="up"),
-    ]
-    patterns = [
-        "Los niños mantienen mejor la atención en actividades de hasta 20 minutos.",
-        "Las transiciones con canción reducen la dispersión.",
-        "El refuerzo verbal inmediato mejora la continuidad de la tarea.",
-    ]
-    recommendations = [
-        "Incorporá pausas activas cada 20 minutos.",
-        "Usá transiciones con canción o consigna corta.",
-        "Reforzá los comportamientos atentos en el momento.",
-    ]
+    client = _get_client()
+    prompt = (
+        "Sos Miss Eli, asistente pedagógica. Generá un resumen de indicadores de aula "
+        f"para el periodo '{period}'. Respondé SOLO con un objeto JSON con esta forma: "
+        '{"statistics":[{"metric":"Dispersión Promedio","value":12.5,"unit":"%","trend":"down"},'
+        '{"metric":"Tiempo de Atención","value":38.0,"unit":"min","trend":"up"},'
+        '{"metric":"Intervenciones","value":2.0,"unit":"cantidad","trend":"stable"},'
+        '{"metric":"Nivel Energético","value":7.5,"unit":"escala 1-10","trend":"up"}],'
+        '"patterns":["..."],"recommendations":["..."]}. '
+        "Usá valores realistas basados en buenas prácticas docentes."
+    )
+
+    response = client.models.generate_content(
+        model=MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT),
+    )
+    text = _clean(response.text)
+
+    try:
+        data = json.loads(text)
+        statistics = [Statistic(**s) for s in data.get("statistics", [])]
+        patterns = data.get("patterns", [])
+        recommendations = data.get("recommendations", [])
+    except Exception:
+        statistics = []
+        patterns = [text]
+        recommendations = []
 
     return InsightsResponse(
         session_id=session_id,

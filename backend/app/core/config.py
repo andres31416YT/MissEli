@@ -12,9 +12,5 @@ class Settings(BaseSettings):
     API_PREFIX: str = "/api/v1"
     CORS_ORIGINS: str = "*"
 
-    @property
-    def GEMINI_API_KEY(self) -> str:
-        return self.API_KEY_OPEN_AI
-
 
 settings = Settings()
