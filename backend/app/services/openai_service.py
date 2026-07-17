@@ -13,7 +13,7 @@ from app.schemas.chat import ChatRequest, ChatResponse
 from app.schemas.vision import VisionRequest, VisionResponse, DispersionAnalysis
 from app.schemas.insights import InsightsResponse, Statistic
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-flash-latest"
 
 SYSTEM_PROMPT = (
     "Sos Miss Eli, una asistente pedagógica especializada en educación inicial. "
